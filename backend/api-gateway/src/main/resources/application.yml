@@ -1,0 +1,125 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      # Discover routes automatically from Eureka
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+      # Explicit route definitions for each microservice
+      routes:
+
+        # ── Auth Service ───────────────────────────────────────────────────────
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: authCircuitBreaker
+                fallbackUri: forward:/fallback/auth
+
+        # ── Patient Service ────────────────────────────────────────────────────
+        - id: patient-service
+          uri: lb://patient-service
+          predicates:
+            - Path=/api/v1/patients/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: patientCircuitBreaker
+                fallbackUri: forward:/fallback/service
+
+        # ── Doctor Service ─────────────────────────────────────────────────────
+        - id: doctor-service
+          uri: lb://doctor-service
+          predicates:
+            - Path=/api/v1/doctors/**, /api/v1/prescriptions/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: doctorCircuitBreaker
+                fallbackUri: forward:/fallback/service
+
+        # ── Lab Service ────────────────────────────────────────────────────────
+        - id: lab-service
+          uri: lb://lab-service
+          predicates:
+            - Path=/api/v1/lab/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: labCircuitBreaker
+                fallbackUri: forward:/fallback/service
+
+        # ── Pharmacy Service ───────────────────────────────────────────────────
+        - id: pharmacy-service
+          uri: lb://pharmacy-service
+          predicates:
+            - Path=/api/v1/pharmacy/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: pharmacyCircuitBreaker
+                fallbackUri: forward:/fallback/service
+
+# Eureka registration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+
+# JWT secret — must match auth-service exactly
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, gateway, metrics
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+
+# Resilience4j circuit breaker config
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+    instances:
+      authCircuitBreaker:
+        base-config: default
+      patientCircuitBreaker:
+        base-config: default
+      doctorCircuitBreaker:
+        base-config: default
+      labCircuitBreaker:
+        base-config: default
+      pharmacyCircuitBreaker:
+        base-config: default
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    com.pms.gateway: DEBUG

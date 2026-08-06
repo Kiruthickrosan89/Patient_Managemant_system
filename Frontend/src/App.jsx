@@ -1,122 +1,62 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import LoginPage from './features/auth/LoginPage';
+import ProtectedRoute from './routes/ProtectedRoute';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Dashboards
+import AdminDashboard from './features/admin/AdminDashboard';
+import DoctorDashboard from './features/doctor/DoctorDashboard';
+import PatientDashboard from './features/patient/PatientDashboard';
+import ReceptionDashboard from './features/reception/ReceptionDashboard';
+import PharmacyDashboard from './features/pharmacy/PharmacyDashboard';
+import LabXrayDashboard from './features/lab/LabXrayDashboard';
+import LabBloodDashboard from './features/lab/LabBloodDashboard';
+import LabSugarDashboard from './features/lab/LabSugarDashboard';
 
+export default function App() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <Routes>
+      {/* Public */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
 
-      <div className="ticks"></div>
+      {/* Admin */}
+      <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      </Route>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      {/* Doctor */}
+      <Route element={<ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']} />}>
+        <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+      </Route>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* Patient */}
+      <Route element={<ProtectedRoute allowedRoles={['PATIENT', 'ADMIN']} />}>
+        <Route path="/patient/dashboard" element={<PatientDashboard />} />
+      </Route>
+
+      {/* Receptionist */}
+      <Route element={<ProtectedRoute allowedRoles={['RECEPTIONIST', 'ADMIN']} />}>
+        <Route path="/reception/dashboard" element={<ReceptionDashboard />} />
+      </Route>
+
+      {/* Pharmacy */}
+      <Route element={<ProtectedRoute allowedRoles={['PHARMACY', 'ADMIN']} />}>
+        <Route path="/pharmacy/dashboard" element={<PharmacyDashboard />} />
+      </Route>
+
+      {/* Labs */}
+      <Route element={<ProtectedRoute allowedRoles={['LAB_XRAY', 'ADMIN']} />}>
+        <Route path="/lab/xray/dashboard" element={<LabXrayDashboard />} />
+      </Route>
+      <Route element={<ProtectedRoute allowedRoles={['LAB_BLOOD', 'ADMIN']} />}>
+        <Route path="/lab/blood/dashboard" element={<LabBloodDashboard />} />
+      </Route>
+      <Route element={<ProtectedRoute allowedRoles={['LAB_SUGAR', 'ADMIN']} />}>
+        <Route path="/lab/sugar/dashboard" element={<LabSugarDashboard />} />
+      </Route>
+
+      {/* Catch-all */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
 }
-
-export default App

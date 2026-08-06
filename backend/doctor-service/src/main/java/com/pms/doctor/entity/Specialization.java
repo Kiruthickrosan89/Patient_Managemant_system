@@ -1,0 +1,24 @@
+package com.pms.doctor.entity;
+
+public enum Specialization {
+    GENERAL_PRACTICE,
+    CARDIOLOGY,
+    NEUROLOGY,
+    ORTHOPEDICS,
+    PEDIATRICS,
+    GYNECOLOGY,
+    DERMATOLOGY,
+    PSYCHIATRY,
+    ONCOLOGY,
+    RADIOLOGY,
+    PATHOLOGY,
+    SURGERY,
+    ENT,
+    OPHTHALMOLOGY,
+    UROLOGY,
+    NEPHROLOGY,
+    PULMONOLOGY,
+    ENDOCRINOLOGY,
+    GASTROENTEROLOGY,
+    RHEUMATOLOGY
+}

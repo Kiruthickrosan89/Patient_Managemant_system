@@ -1,0 +1,209 @@
+version: '3.9'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Patient Management System — Full-Stack Docker Compose
+#
+# Startup order:
+#   postgres → service-registry → api-gateway + auth-service
+#             → patient-service → doctor-service → lab-service → pharmacy-service
+#             → frontend
+#
+# Access points:
+#   Frontend          http://localhost:5173
+#   API Gateway       http://localhost:8080
+#   Eureka Dashboard  http://localhost:8761
+# ─────────────────────────────────────────────────────────────────────────────
+
+networks:
+  pms-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+services:
+
+  # ── PostgreSQL (single instance, multiple databases) ───────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: pms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # Init script creates all 5 databases on first boot
+      POSTGRES_MULTIPLE_DATABASES: pms_auth_db,pms_patient_db,pms_doctor_db,pms_lab_db,pms_pharmacy_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    networks:
+      - pms-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Service Registry (Eureka Server) ──────────────────────────────────────
+  service-registry:
+    build:
+      context: ./backend/service-registry
+      dockerfile: Dockerfile
+    container_name: pms-service-registry
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    networks:
+      - pms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── API Gateway ────────────────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: pms-api-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - pms-network
+
+  # ── Auth Service ───────────────────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./backend/auth-service
+      dockerfile: Dockerfile
+    container_name: pms-auth-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pms_auth_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      JWT_EXPIRATION: 86400000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    networks:
+      - pms-network
+
+  # ── Patient Service ────────────────────────────────────────────────────────
+  patient-service:
+    build:
+      context: ./backend/patient-service
+      dockerfile: Dockerfile
+    container_name: pms-patient-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pms_patient_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    networks:
+      - pms-network
+
+  # ── Doctor Service ─────────────────────────────────────────────────────────
+  doctor-service:
+    build:
+      context: ./backend/doctor-service
+      dockerfile: Dockerfile
+    container_name: pms-doctor-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pms_doctor_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    networks:
+      - pms-network
+
+  # ── Lab Service ────────────────────────────────────────────────────────────
+  lab-service:
+    build:
+      context: ./backend/lab-service
+      dockerfile: Dockerfile
+    container_name: pms-lab-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pms_lab_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    networks:
+      - pms-network
+
+  # ── Pharmacy Service ───────────────────────────────────────────────────────
+  pharmacy-service:
+    build:
+      context: ./backend/pharmacy-service
+      dockerfile: Dockerfile
+    container_name: pms-pharmacy-service
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pms_pharmacy_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    networks:
+      - pms-network
+
+  # ── React Frontend (Nginx) ─────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: pms-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - pms-network
